@@ -9,3 +9,16 @@ class Company(BaseModel):
     name: str
     ticker: str
     cik: str
+
+
+class CompanyProfile(BaseModel):
+    """Identity details of a company from its SEC submissions record."""
+
+    name: str
+    cik: str
+    tickers: list[str]
+    exchanges: list[str]
+    industry: str | None
+    sic_code: str | None
+    fiscal_year_end: str | None
+    state_of_incorporation: str | None    
