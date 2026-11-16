@@ -22,3 +22,14 @@ class CompanyProfile(BaseModel):
     sic_code: str | None
     fiscal_year_end: str | None
     state_of_incorporation: str | None    
+
+
+
+class Filing(BaseModel):
+    """A single report a company filed with SEC."""
+
+    form: str
+    filing_date: str
+    report_date: str | None
+    accession_number: str
+    url: str    
