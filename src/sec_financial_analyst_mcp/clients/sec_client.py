@@ -11,6 +11,8 @@ COMPANY_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 
+COMPANY_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+
 # SEC allows 10 requests per second; staying at 8 leaves a safety margin.
 MAX_REQUESTS_PER_SECOND = 8
 _MIN_INTERVAL_SECONDS = 1 / MAX_REQUESTS_PER_SECOND
@@ -50,3 +52,8 @@ def fetch_submissions(cik: str) -> dict:
     """Return a company's profile and filing history from SEC's submissions API."""
     return fetch_json(SUBMISSIONS_URL.format(cik=cik))
 
+
+
+def fetch_company_facts(cik: str) -> dict:
+    """Return every XBRL financial fact a company has reported to SEC."""
+    return fetch_json(COMPANY_FACTS_URL.format(cik=cik))

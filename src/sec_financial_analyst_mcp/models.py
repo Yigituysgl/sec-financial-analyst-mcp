@@ -33,3 +33,27 @@ class Filing(BaseModel):
     report_date: str | None
     accession_number: str
     url: str    
+
+
+
+
+class RatioResult(BaseModel):
+    """One financial ratio together with the inputs used to compute it."""
+
+    name: str
+    formula: str
+    value: float | None
+    inputs: dict[str, float]
+    note: str | None = None
+
+
+class FinancialRatios(BaseModel):
+    """A company's key ratios for one fiscal year, traced to its SEC filing."""
+
+    ticker: str
+    company_name: str
+    period_end: str
+    source_form: str
+    source_filed: str
+    ratios: list[RatioResult]
+    warnings: list[str]
