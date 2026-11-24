@@ -2,8 +2,8 @@
 
 from fastmcp import FastMCP
 
-from sec_financial_analyst_mcp.models import Company, CompanyProfile, Filing
-from sec_financial_analyst_mcp.services import companies, filings
+from sec_financial_analyst_mcp.models import Company, CompanyProfile, Filing, FinancialRatios
+from sec_financial_analyst_mcp.services import companies, filings, ratios
 
 mcp = FastMCP("SEC Financial Analyst")
 
@@ -42,6 +42,23 @@ def list_filings(ticker: str, form_type: str = "10-K", limit: int = 5) -> list[F
     Returns at most 20 filings.
     """
     return filings.list_filings(ticker, form_type, min(limit, MAX_FILINGS))
+
+
+@mcp.tool
+def get_financial_ratios(ticker: str, period_end: str | None = None) -> FinancialRatios:
+    """Compute a company's key financial ratios for one fiscal year from its 10-K.
+
+    Returns debt to equity, current ratio, interest coverage, net profit margin
+    and return on equity. Every ratio includes its formula and the raw reported
+    inputs, and the result names the source form and filing date, so cite them
+    in your answer. A ratio is null when SEC data lacks an input: say it could
+    not be computed and never estimate it. Interpret equity-based ratios (debt
+    to equity, return on equity) with care, because large share buybacks shrink
+    equity and can inflate them. Uses the latest fiscal year unless period_end
+    (YYYY-MM-DD) is given. Requires an exact ticker; call search_company first
+    if you only have a company name.
+    """
+    return ratios.get_financial_ratios(ticker, period_end)
 
 
 def main() -> None:
