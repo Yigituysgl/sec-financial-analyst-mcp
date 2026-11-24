@@ -1,10 +1,10 @@
 [project]
 name = "sec-financial-analyst-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server that gives AI assistants source-cited financial analysis of US public companies from SEC EDGAR filings."
 readme = "README.md"
 authors = [
-    { name = "Yigituysgl", email = "uysalogluyigit86@gmail.com" }
+    { name = "Yigit Uysaloglu" },
 ]
 requires-python = ">=3.12"
 dependencies = [
@@ -19,3 +19,8 @@ sec-financial-analyst-mcp = "sec_financial_analyst_mcp:main"
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
