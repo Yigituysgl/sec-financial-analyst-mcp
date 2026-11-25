@@ -46,18 +46,21 @@ def list_filings(ticker: str, form_type: str = "10-K", limit: int = 5) -> list[F
 
 @mcp.tool
 def get_financial_ratios(ticker: str, period_end: str | None = None) -> FinancialRatios:
-    """Compute a company's key financial ratios for one fiscal year from its 10-K.
+    """Compute a company's key financial ratios and cash metrics for one fiscal year from its 10-K.
 
-    Returns debt to equity, current ratio, interest coverage, net profit margin
-    and return on equity. Every ratio includes its formula and the raw reported
-    inputs, and the result names the source form and filing date, so cite them
-    in your answer. A ratio is null when SEC data lacks an input: say it could
-    not be computed and never estimate it. Interpret equity-based ratios (debt
-    to equity, return on equity) with care, because large share buybacks shrink
-    equity and can inflate them. Uses the latest fiscal year unless period_end
-    (YYYY-MM-DD) is given. Requires an exact ticker; call search_company first
-    if you only have a company name.
+    Returns debt to equity, current ratio, interest coverage, net profit
+    margin, return on equity, free cash flow, free cash flow margin, net debt
+    and net debt to free cash flow. Each metric has a unit, either "ratio" or
+    "USD". Every metric includes its formula and the raw reported inputs, and
+    the result names the source form and filing date, so cite them in your
+    answer. A metric is null when SEC data lacks a required input: say it
+    could not be computed and never estimate it. Large share buybacks shrink
+    equity and can inflate debt to equity and return on equity, so judge
+    leverage with net debt and net debt to free cash flow instead. Uses the
+    latest fiscal year unless period_end (YYYY-MM-DD) is given. Requires an
+    exact ticker; call search_company first if you only have a company name.
     """
+       
     return ratios.get_financial_ratios(ticker, period_end)
 
 

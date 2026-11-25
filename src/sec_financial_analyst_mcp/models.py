@@ -45,6 +45,7 @@ class RatioResult(BaseModel):
     value: float | None
     inputs: dict[str, float]
     note: str | None = None
+    unit: str = "ratio"
 
 
 class FinancialRatios(BaseModel):

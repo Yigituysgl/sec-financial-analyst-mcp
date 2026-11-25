@@ -1,6 +1,6 @@
 """Tests for the deterministic ratio calculations."""
 
-from sec_financial_analyst_mcp.services.ratios import _annual_values, safe_divide
+from sec_financial_analyst_mcp.services.ratios import _annual_values, _free_cash_flow, _net_debt, safe_divide
 
 
 def _entry(
@@ -91,3 +91,48 @@ def test_annual_values_ignores_10q_and_keeps_balance_sheet_items():
 
 def test_annual_values_returns_empty_dict_for_missing_tag():
     assert _annual_values({}, "Revenues") == {}
+
+
+def test_free_cash_flow_subtracts_capex_reported_as_positive():
+    values = {"OperatingCashFlow": 145.0, "CapitalExpenditure": 9.0}
+
+    assert _free_cash_flow(values) == 136.0
+
+
+def test_free_cash_flow_is_none_when_capex_is_missing():
+    values = {"OperatingCashFlow": 145.0, "CapitalExpenditure": None}
+
+    assert _free_cash_flow(values) is None
+
+
+def test_net_debt_subtracts_cash_and_short_term_investments():
+    values = {
+        "LongTermDebt": 78.0,
+        "CommercialPaper": 2.0,
+        "CashAndEquivalents": 36.0,
+        "ShortTermInvestments": 20.0,
+    }
+
+    assert _net_debt(values) == 24.0
+
+
+def test_net_debt_counts_missing_optional_items_as_zero():
+    values = {
+        "LongTermDebt": 78.0,
+        "CommercialPaper": None,
+        "CashAndEquivalents": 36.0,
+        "ShortTermInvestments": None,
+    }
+
+    assert _net_debt(values) == 42.0
+
+
+def test_net_debt_is_none_when_cash_is_missing():
+    values = {
+        "LongTermDebt": 78.0,
+        "CommercialPaper": 2.0,
+        "CashAndEquivalents": None,
+        "ShortTermInvestments": 20.0,
+    }
+
+    assert _net_debt(values) is None    

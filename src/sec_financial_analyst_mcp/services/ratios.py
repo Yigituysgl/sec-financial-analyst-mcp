@@ -23,6 +23,12 @@ TAG_PRIORITY: dict[str, list[str]] = {
     "InterestExpense": ["InterestExpense", "InterestExpenseNonoperating"],
     "NetIncomeLoss": ["NetIncomeLoss"],
     "Revenues": ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax"],
+    "OperatingCashFlow": ["NetCashProvidedByUsedInOperatingActivities"],
+    "CapitalExpenditure": ["PaymentsToAcquirePropertyPlantAndEquipment"],
+    "LongTermDebt": ["LongTermDebt"],
+    "CommercialPaper": ["CommercialPaper"],
+    "CashAndEquivalents": ["CashAndCashEquivalentsAtCarryingValue"],
+    "ShortTermInvestments": ["MarketableSecuritiesCurrent"],
 }
 
 RATIO_DEFINITIONS: list[tuple[str, str, str]] = [
@@ -32,6 +38,10 @@ RATIO_DEFINITIONS: list[tuple[str, str, str]] = [
     ("Net profit margin", "NetIncomeLoss", "Revenues"),
     ("Return on equity", "NetIncomeLoss", "StockholdersEquity"),
 ]
+
+# Many companies issue no commercial paper or hold no short-term investments,
+# so these items count as zero when missing and are flagged in the warnings.
+OPTIONAL_ITEMS = {"CommercialPaper", "ShortTermInvestments"}
 
 
 def safe_divide(numerator: float | None, denominator: float | None) -> float | None:
@@ -43,6 +53,39 @@ def safe_divide(numerator: float | None, denominator: float | None) -> float | N
     if numerator is None or denominator is None or denominator == 0:
         return None
     return round(numerator / denominator, 4)
+
+
+def _known(inputs: dict[str, float | None]) -> dict[str, float]:
+    """Keep only inputs that have a value, so missing data is never shown as zero."""
+    return {name: value for name, value in inputs.items() if value is not None}
+
+
+def _free_cash_flow(values: dict[str, float | None]) -> float | None:
+    """Operating cash flow minus capital expenditure.
+
+    SEC reports capital expenditure as a positive payment, so it is subtracted.
+    """
+    operating, capex = values["OperatingCashFlow"], values["CapitalExpenditure"]
+    if operating is None or capex is None:
+        return None
+    return operating - capex
+
+
+def _net_debt(values: dict[str, float | None]) -> float | None:
+    """Financial debt minus cash and short-term investments.
+
+    LongTermDebt already includes its current portion, so the current and
+    noncurrent tags are not added again. Long-term debt and cash are required.
+    """
+    debt, cash = values["LongTermDebt"], values["CashAndEquivalents"]
+    if debt is None or cash is None:
+        return None
+    return (
+        debt
+        + (values["CommercialPaper"] or 0)
+        - cash
+        - (values["ShortTermInvestments"] or 0)
+    )
 
 
 def _annual_values(facts: dict, tag: str) -> dict[str, dict]:
@@ -94,11 +137,11 @@ def _latest_period_end(facts: dict) -> str | None:
 
 
 def get_financial_ratios(ticker: str, period_end: str | None = None) -> FinancialRatios:
-    """Compute key ratios for one fiscal year from a company's 10-K XBRL facts.
+    """Compute key ratios and cash metrics for one fiscal year from a company's 10-K.
 
     Uses the latest fiscal year unless period_end (YYYY-MM-DD) is given. Every
-    ratio carries the raw inputs it used; a missing input produces None and a
-    warning rather than an estimate.
+    metric carries the raw inputs it used; a missing required input produces
+    None and a warning rather than an estimate.
     """
     company = resolve_company(ticker)
     facts = load_company_facts(company.cik)
@@ -116,33 +159,74 @@ def get_financial_ratios(ticker: str, period_end: str | None = None) -> Financia
     if source is None:
         raise ValueError(f"No 10-K figures found for '{ticker}' with period end {end}.")
 
-    ratios: list[RatioResult] = []
+    metrics: list[RatioResult] = []
     for name, numerator, denominator in RATIO_DEFINITIONS:
-        inputs = {
-            key: values[key]
-            for key in (numerator, denominator)
-            if values[key] is not None
-        }
         note = None
         if denominator == "StockholdersEquity" and (values[denominator] or 0) < 0:
             note = "Equity is negative, so this ratio is not meaningful."
-        ratios.append(
+        metrics.append(
             RatioResult(
                 name=name,
                 formula=f"{numerator} / {denominator}",
                 value=safe_divide(values[numerator], values[denominator]),
-                inputs=inputs,
+                inputs=_known({key: values[key] for key in (numerator, denominator)}),
                 note=note,
             )
         )
 
-    warnings = [f"{item} is not reported for {end}." for item, value in values.items() if value is None]
+    free_cash_flow = _free_cash_flow(values)
+    net_debt = _net_debt(values)
+    positive_fcf = free_cash_flow is not None and free_cash_flow > 0
+    metrics.extend(
+        [
+            RatioResult(
+                name="Free cash flow",
+                formula="OperatingCashFlow - CapitalExpenditure",
+                value=free_cash_flow,
+                inputs=_known({key: values[key] for key in ("OperatingCashFlow", "CapitalExpenditure")}),
+                unit="USD",
+            ),
+            RatioResult(
+                name="Free cash flow margin",
+                formula="FreeCashFlow / Revenues",
+                value=safe_divide(free_cash_flow, values["Revenues"]),
+                inputs=_known({"FreeCashFlow": free_cash_flow, "Revenues": values["Revenues"]}),
+            ),
+            RatioResult(
+                name="Net debt",
+                formula="LongTermDebt + CommercialPaper - CashAndEquivalents - ShortTermInvestments",
+                value=net_debt,
+                inputs=_known(
+                    {
+                        key: values[key]
+                        for key in ("LongTermDebt", "CommercialPaper", "CashAndEquivalents", "ShortTermInvestments")
+                    }
+                ),
+                unit="USD",
+                note="Negative net debt means cash exceeds debt." if (net_debt or 0) < 0 else None,
+            ),
+            RatioResult(
+                name="Net debt to free cash flow",
+                formula="NetDebt / FreeCashFlow",
+                value=safe_divide(net_debt, free_cash_flow) if positive_fcf else None,
+                inputs=_known({"NetDebt": net_debt, "FreeCashFlow": free_cash_flow}),
+                note=None if positive_fcf else "Free cash flow is not positive, so this ratio is not meaningful.",
+            ),
+        ]
+    )
+
+    warnings = []
+    for item, value in values.items():
+        if value is None:
+            suffix = " Counted as zero in net debt." if item in OPTIONAL_ITEMS else ""
+            warnings.append(f"{item} is not reported for {end}.{suffix}")
+
     return FinancialRatios(
         ticker=company.ticker,
         company_name=company.name,
         period_end=end,
         source_form=source["form"],
         source_filed=source["filed"],
-        ratios=ratios,
+        ratios=metrics,
         warnings=warnings,
     )
