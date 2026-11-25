@@ -2,9 +2,10 @@
 
 from datetime import date
 
-from sec_financial_analyst_mcp.models import FinancialRatios, RatioResult
+from sec_financial_analyst_mcp.models import FinancialRatios, MetricTrend, RatioResult, TrendPoint
 from sec_financial_analyst_mcp.services.companies import resolve_company
 from sec_financial_analyst_mcp.services.facts import load_company_facts
+
 
 ANNUAL_PERIOD_MIN_DAYS = 350
 ANNUAL_PERIOD_MAX_DAYS = 380
@@ -230,3 +231,77 @@ def get_financial_ratios(ticker: str, period_end: str | None = None) -> Financia
         ratios=metrics,
         warnings=warnings,
     )
+
+
+TREND_METRICS = (*TAG_PRIORITY, "FreeCashFlow")
+MAX_TREND_YEARS = 10
+
+
+def _series(facts: dict, item: str) -> dict[str, dict]:
+    """Map each fiscal year-end to an item's annual entry, using the first tag that reports it."""
+    series: dict[str, dict] = {}
+    for tag in TAG_PRIORITY[item]:
+        for end, entry in _annual_values(facts, tag).items():
+            series.setdefault(end, entry)
+    return series
+
+
+def _metric_series(facts: dict, metric: str) -> dict[str, tuple[float, str]]:
+    """Return the value and filing date per fiscal year-end for a reported or derived metric."""
+    if metric == "FreeCashFlow":
+        operating = _series(facts, "OperatingCashFlow")
+        capex = _series(facts, "CapitalExpenditure")
+        return {
+            end: (
+                float(operating[end]["val"]) - float(capex[end]["val"]),
+                max(operating[end]["filed"], capex[end]["filed"]),
+            )
+            for end in operating.keys() & capex.keys()
+        }
+    return {end: (float(entry["val"]), entry["filed"]) for end, entry in _series(facts, metric).items()}
+
+
+def _with_growth(points: list[tuple[str, float, str]]) -> list[TrendPoint]:
+    """Attach year-over-year growth to consecutive fiscal years.
+
+    Growth is None for the first year, when the previous value is not
+    positive, or when a fiscal year is missing in between, so a two-year
+    change is never reported as one year's growth.
+    """
+    result: list[TrendPoint] = []
+    previous: tuple[str, float, str] | None = None
+    for end, value, filed in points:
+        growth = None
+        if previous is not None and previous[1] > 0:
+            gap_days = (date.fromisoformat(end) - date.fromisoformat(previous[0])).days
+            if ANNUAL_PERIOD_MIN_DAYS <= gap_days <= ANNUAL_PERIOD_MAX_DAYS:
+                growth = safe_divide(value - previous[1], previous[1])
+        result.append(TrendPoint(period_end=end, value=value, growth=growth, source_filed=filed))
+        previous = (end, value, filed)
+    return result
+
+
+def get_metric_trend(ticker: str, metric: str, years: int = 5) -> MetricTrend:
+    """Return one metric over recent fiscal years with year-over-year growth computed in code.
+
+    One extra year is loaded so the oldest year shown also has a growth figure.
+    """
+    if metric not in TREND_METRICS:
+        raise ValueError(f"Unknown metric '{metric}'. Supported metrics: {', '.join(TREND_METRICS)}.")
+    company = resolve_company(ticker)
+    series = _metric_series(load_company_facts(company.cik), metric)
+    if not series:
+        raise ValueError(f"No annual 10-K values found for {metric} at '{ticker}'.")
+
+    count = min(max(years, 1), MAX_TREND_YEARS)
+    ends = sorted(series)[-(count + 1):]
+    points = _with_growth([(end, *series[end]) for end in ends])[-count:]
+    return MetricTrend(
+        ticker=company.ticker,
+        company_name=company.name,
+        metric=metric,
+        unit="USD",
+        points=points,
+    )
+
+

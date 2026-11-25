@@ -1,6 +1,6 @@
 """Tests for the deterministic ratio calculations."""
 
-from sec_financial_analyst_mcp.services.ratios import _annual_values, _free_cash_flow, _net_debt, safe_divide
+from sec_financial_analyst_mcp.services.ratios import _annual_values, _free_cash_flow, _net_debt, _with_growth, safe_divide
 
 
 def _entry(
@@ -136,3 +136,22 @@ def test_net_debt_is_none_when_cash_is_missing():
     }
 
     assert _net_debt(values) is None    
+
+
+def test_with_growth_computes_year_over_year_change():
+    points = _with_growth([("2025-09-27", 100.0, "2025-10-31"), ("2026-09-26", 120.0, "2026-10-30")])
+
+    assert points[0].growth is None
+    assert points[1].growth == 0.2
+
+
+def test_with_growth_skips_growth_across_a_missing_year():
+    points = _with_growth([("2024-09-28", 100.0, "2024-11-01"), ("2026-09-26", 120.0, "2026-10-30")])
+
+    assert points[1].growth is None
+
+
+def test_with_growth_skips_growth_after_a_non_positive_value():
+    points = _with_growth([("2025-09-27", -10.0, "2025-10-31"), ("2026-09-26", 5.0, "2026-10-30")])
+
+    assert points[1].growth is None   

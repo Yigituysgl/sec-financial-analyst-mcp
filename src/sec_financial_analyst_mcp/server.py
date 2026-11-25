@@ -2,7 +2,7 @@
 
 from fastmcp import FastMCP
 
-from sec_financial_analyst_mcp.models import Company, CompanyProfile, Filing, FinancialRatios
+from sec_financial_analyst_mcp.models import Company, CompanyProfile, Filing, FinancialRatios, MetricTrend
 from sec_financial_analyst_mcp.services import companies, filings, ratios
 
 mcp = FastMCP("SEC Financial Analyst")
@@ -54,14 +54,33 @@ def get_financial_ratios(ticker: str, period_end: str | None = None) -> Financia
     "USD". Every metric includes its formula and the raw reported inputs, and
     the result names the source form and filing date, so cite them in your
     answer. A metric is null when SEC data lacks a required input: say it
-    could not be computed and never estimate it. Large share buybacks shrink
-    equity and can inflate debt to equity and return on equity, so judge
+    could not be computed and never estimate it. For growth over time, call get_metric_trend instead of calculating it yourself.
+    Large share buybacks shrink equity and can inflate debt to equity and return on equity, so judge
     leverage with net debt and net debt to free cash flow instead. Uses the
     latest fiscal year unless period_end (YYYY-MM-DD) is given. Requires an
     exact ticker; call search_company first if you only have a company name.
     """
        
     return ratios.get_financial_ratios(ticker, period_end)
+
+
+@mcp.tool
+def get_metric_trend(ticker: str, metric: str, years: int = 5) -> MetricTrend:
+    """Return one financial metric for a company over recent fiscal years with growth.
+
+    Use this for questions about growth or change over time, and use its
+    growth figures instead of calculating growth yourself. Growth is
+    (value - previous) / previous, computed in code; it is null when no
+    earlier year exists, the previous value is not positive, or a fiscal year
+    is missing. Values are in USD from annual 10-K filings, each with its
+    filing date. Supported metrics: Revenues, NetIncomeLoss,
+    OperatingIncomeLoss, OperatingCashFlow, CapitalExpenditure, FreeCashFlow,
+    LongTermDebt, CommercialPaper, CashAndEquivalents, ShortTermInvestments,
+    StockholdersEquity, Liabilities, AssetsCurrent, LiabilitiesCurrent and
+    InterestExpense. Returns at most 10 years. Requires an exact ticker.
+    """
+    return ratios.get_metric_trend(ticker, metric, years)
+
 
 
 def main() -> None:

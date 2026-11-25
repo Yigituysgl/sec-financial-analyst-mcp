@@ -58,3 +58,22 @@ class FinancialRatios(BaseModel):
     source_filed: str
     ratios: list[RatioResult]
     warnings: list[str]
+
+
+class TrendPoint(BaseModel):
+    """One fiscal year of a metric, with growth over the previous year."""
+
+    period_end: str
+    value: float
+    growth: float | None
+    source_filed: str
+
+
+class MetricTrend(BaseModel):
+    """One metric over several fiscal years, traced to the 10-K filings."""
+
+    ticker: str
+    company_name: str
+    metric: str
+    unit: str
+    points: list[TrendPoint]
