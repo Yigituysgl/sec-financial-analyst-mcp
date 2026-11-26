@@ -18,7 +18,6 @@ def get_sec_user_agent() -> str:
     """
     if not SEC_USER_AGENT.strip():
         raise RuntimeError(
-            "SEC_USER_AGENT is not set. Copy .env.example to .env "
-            "and add your name and email."
+            "SEC_USER_AGENT is not set. Copy .env.example to .env and add your name and email."
         )
     return SEC_USER_AGENT

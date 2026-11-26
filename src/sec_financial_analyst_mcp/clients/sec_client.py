@@ -53,7 +53,6 @@ def fetch_submissions(cik: str) -> dict:
     return fetch_json(SUBMISSIONS_URL.format(cik=cik))
 
 
-
 def fetch_company_facts(cik: str) -> dict:
     """Return every XBRL financial fact a company has reported to SEC."""
     return fetch_json(COMPANY_FACTS_URL.format(cik=cik))

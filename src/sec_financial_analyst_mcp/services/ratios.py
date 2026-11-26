@@ -6,7 +6,6 @@ from sec_financial_analyst_mcp.models import FinancialRatios, MetricTrend, Ratio
 from sec_financial_analyst_mcp.services.companies import resolve_company
 from sec_financial_analyst_mcp.services.facts import load_company_facts
 
-
 ANNUAL_PERIOD_MIN_DAYS = 350
 ANNUAL_PERIOD_MAX_DAYS = 380
 
@@ -81,12 +80,7 @@ def _net_debt(values: dict[str, float | None]) -> float | None:
     debt, cash = values["LongTermDebt"], values["CashAndEquivalents"]
     if debt is None or cash is None:
         return None
-    return (
-        debt
-        + (values["CommercialPaper"] or 0)
-        - cash
-        - (values["ShortTermInvestments"] or 0)
-    )
+    return debt + (values["CommercialPaper"] or 0) - cash - (values["ShortTermInvestments"] or 0)
 
 
 def _annual_values(facts: dict, tag: str) -> dict[str, dict]:
@@ -98,13 +92,7 @@ def _annual_values(facts: dict, tag: str) -> dict[str, dict]:
     When a period appears in several filings, the latest filing wins, which
     picks up any restatement.
     """
-    entries = (
-        facts.get("facts", {})
-        .get("us-gaap", {})
-        .get(tag, {})
-        .get("units", {})
-        .get("USD", [])
-    )
+    entries = facts.get("facts", {}).get("us-gaap", {}).get(tag, {}).get("units", {}).get("USD", [])
     selected: dict[str, dict] = {}
     for entry in entries:
         if entry.get("form") != "10-K":
@@ -184,7 +172,9 @@ def get_financial_ratios(ticker: str, period_end: str | None = None) -> Financia
                 name="Free cash flow",
                 formula="OperatingCashFlow - CapitalExpenditure",
                 value=free_cash_flow,
-                inputs=_known({key: values[key] for key in ("OperatingCashFlow", "CapitalExpenditure")}),
+                inputs=_known(
+                    {key: values[key] for key in ("OperatingCashFlow", "CapitalExpenditure")}
+                ),
                 unit="USD",
             ),
             RatioResult(
@@ -195,12 +185,19 @@ def get_financial_ratios(ticker: str, period_end: str | None = None) -> Financia
             ),
             RatioResult(
                 name="Net debt",
-                formula="LongTermDebt + CommercialPaper - CashAndEquivalents - ShortTermInvestments",
+                formula=(
+                    "LongTermDebt + CommercialPaper - CashAndEquivalents - ShortTermInvestments"
+                ),
                 value=net_debt,
                 inputs=_known(
                     {
                         key: values[key]
-                        for key in ("LongTermDebt", "CommercialPaper", "CashAndEquivalents", "ShortTermInvestments")
+                        for key in (
+                            "LongTermDebt",
+                            "CommercialPaper",
+                            "CashAndEquivalents",
+                            "ShortTermInvestments",
+                        )
                     }
                 ),
                 unit="USD",
@@ -211,7 +208,9 @@ def get_financial_ratios(ticker: str, period_end: str | None = None) -> Financia
                 formula="NetDebt / FreeCashFlow",
                 value=safe_divide(net_debt, free_cash_flow) if positive_fcf else None,
                 inputs=_known({"NetDebt": net_debt, "FreeCashFlow": free_cash_flow}),
-                note=None if positive_fcf else "Free cash flow is not positive, so this ratio is not meaningful.",
+                note=None
+                if positive_fcf
+                else "Free cash flow is not positive, so this ratio is not meaningful.",
             ),
         ]
     )
@@ -258,7 +257,9 @@ def _metric_series(facts: dict, metric: str) -> dict[str, tuple[float, str]]:
             )
             for end in operating.keys() & capex.keys()
         }
-    return {end: (float(entry["val"]), entry["filed"]) for end, entry in _series(facts, metric).items()}
+    return {
+        end: (float(entry["val"]), entry["filed"]) for end, entry in _series(facts, metric).items()
+    }
 
 
 def _with_growth(points: list[tuple[str, float, str]]) -> list[TrendPoint]:
@@ -287,14 +288,16 @@ def get_metric_trend(ticker: str, metric: str, years: int = 5) -> MetricTrend:
     One extra year is loaded so the oldest year shown also has a growth figure.
     """
     if metric not in TREND_METRICS:
-        raise ValueError(f"Unknown metric '{metric}'. Supported metrics: {', '.join(TREND_METRICS)}.")
+        raise ValueError(
+            f"Unknown metric '{metric}'. Supported metrics: {', '.join(TREND_METRICS)}."
+        )
     company = resolve_company(ticker)
     series = _metric_series(load_company_facts(company.cik), metric)
     if not series:
         raise ValueError(f"No annual 10-K values found for {metric} at '{ticker}'.")
 
     count = min(max(years, 1), MAX_TREND_YEARS)
-    ends = sorted(series)[-(count + 1):]
+    ends = sorted(series)[-(count + 1) :]
     points = _with_growth([(end, *series[end]) for end in ends])[-count:]
     return MetricTrend(
         ticker=company.ticker,
@@ -303,5 +306,3 @@ def get_metric_trend(ticker: str, metric: str, years: int = 5) -> MetricTrend:
         unit="USD",
         points=points,
     )
-
-

@@ -21,8 +21,7 @@ class CompanyProfile(BaseModel):
     industry: str | None
     sic_code: str | None
     fiscal_year_end: str | None
-    state_of_incorporation: str | None    
-
+    state_of_incorporation: str | None
 
 
 class Filing(BaseModel):
@@ -32,9 +31,7 @@ class Filing(BaseModel):
     filing_date: str
     report_date: str | None
     accession_number: str
-    url: str    
-
-
+    url: str
 
 
 class RatioResult(BaseModel):

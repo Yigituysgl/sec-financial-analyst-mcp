@@ -2,7 +2,13 @@
 
 from fastmcp import FastMCP
 
-from sec_financial_analyst_mcp.models import Company, CompanyProfile, Filing, FinancialRatios, MetricTrend
+from sec_financial_analyst_mcp.models import (
+    Company,
+    CompanyProfile,
+    Filing,
+    FinancialRatios,
+    MetricTrend,
+)
 from sec_financial_analyst_mcp.services import companies, filings, ratios
 
 mcp = FastMCP("SEC Financial Analyst")
@@ -54,13 +60,14 @@ def get_financial_ratios(ticker: str, period_end: str | None = None) -> Financia
     "USD". Every metric includes its formula and the raw reported inputs, and
     the result names the source form and filing date, so cite them in your
     answer. A metric is null when SEC data lacks a required input: say it
-    could not be computed and never estimate it. For growth over time, call get_metric_trend instead of calculating it yourself.
+    could not be computed and never estimate it. For growth over time, call
+    get_metric_trend instead of calculating it yourself.
     Large share buybacks shrink equity and can inflate debt to equity and return on equity, so judge
     leverage with net debt and net debt to free cash flow instead. Uses the
     latest fiscal year unless period_end (YYYY-MM-DD) is given. Requires an
     exact ticker; call search_company first if you only have a company name.
     """
-       
+
     return ratios.get_financial_ratios(ticker, period_end)
 
 
@@ -80,7 +87,6 @@ def get_metric_trend(ticker: str, metric: str, years: int = 5) -> MetricTrend:
     InterestExpense. Returns at most 10 years. Requires an exact ticker.
     """
     return ratios.get_metric_trend(ticker, metric, years)
-
 
 
 def main() -> None:

@@ -46,9 +46,7 @@ def resolve_company(ticker: str) -> Company:
     for company in _load_companies():
         if company.ticker == needle:
             return company
-    raise ValueError(
-        f"Unknown ticker '{ticker}'. Use search_company to find the correct ticker."
-    )
+    raise ValueError(f"Unknown ticker '{ticker}'. Use search_company to find the correct ticker.")
 
 
 def _format_fiscal_year_end(raw: str | None) -> str | None:
