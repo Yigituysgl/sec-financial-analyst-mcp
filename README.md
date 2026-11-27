@@ -2,6 +2,7 @@
 
 An MCP server that gives AI assistants source-cited financial analysis of US public companies from SEC EDGAR filings.
 
+[![PyPI](https://img.shields.io/pypi/v/sec-financial-analyst-mcp)](https://pypi.org/project/sec-financial-analyst-mcp/)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![CI](https://github.com/Yigituysgl/sec-financial-analyst-mcp/actions/workflows/ci.yml/badge.svg)
@@ -28,11 +29,33 @@ All tools are read-only.
 
 ## Example
 
-![Claude Desktop answering a question about Apple's revenue and free cash flow](docs/claude-desktop-example.png)
+![Claude Desktop answering a question about Apple's revenue and free cash flow](https://raw.githubusercontent.com/Yigituysgl/sec-financial-analyst-mcp/main/docs/claude-desktop-example.png)
 
 ## Quick start
 
-**Requirements:** [uv](https://docs.astral.sh/uv/) and Python 3.12 or later.
+**Requirements:** [uv](https://docs.astral.sh/uv/).
+
+Add the server to your Claude Desktop configuration (`claude_desktop_config.json`). SEC requires every request to identify its sender, so replace the placeholder with your name and email:
+
+```json
+{
+  "mcpServers": {
+    "sec-financial-analyst": {
+      "command": "uvx",
+      "args": ["sec-financial-analyst-mcp"],
+      "env": {
+        "SEC_USER_AGENT": "Your Name your.email@example.com"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop and ask, for example: *"How has Apple's free cash flow changed over the last five years?"*
+
+If Claude Desktop cannot find `uvx`, use its full path instead (`where uvx` on Windows, `which uvx` on macOS and Linux).
+
+### Run from source
 
 1. Clone the repository and install the dependencies:
 
@@ -61,7 +84,7 @@ All tools are read-only.
    }
    ```
 
-4. Restart Claude Desktop and ask, for example: *"How has Apple's free cash flow changed over the last five years?"*
+4. Restart Claude Desktop.
 
 ## How it works
 
@@ -123,4 +146,4 @@ This project is for research and educational use. It is not investment advice. F
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/Yigituysgl/sec-financial-analyst-mcp/blob/main/LICENSE)
