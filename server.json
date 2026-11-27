@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Yigituysgl/sec-financial-analyst-mcp",
+  "title": "SEC Financial Analyst",
+  "description": "Source-cited financial analysis of US public companies from SEC EDGAR filings.",
+  "repository": {
+    "url": "https://github.com/Yigituysgl/sec-financial-analyst-mcp",
+    "source": "github"
+  },
+  "version": "1.0.2",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "sec-financial-analyst-mcp",
+      "version": "1.0.2",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SEC_USER_AGENT",
+          "description": "Your name and email; SEC requires every request to identify its sender.",
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}

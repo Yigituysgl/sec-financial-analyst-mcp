@@ -1,6 +1,6 @@
 [project]
 name = "sec-financial-analyst-mcp"
-version = "1.0.1"
+version = "1.0.2"
 description = "MCP server that gives AI assistants source-cited financial analysis of US public companies from SEC EDGAR filings."
 readme = "README.md"
 authors = [

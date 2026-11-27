@@ -2,6 +2,8 @@
 
 An MCP server that gives AI assistants source-cited financial analysis of US public companies from SEC EDGAR filings.
 
+<!-- mcp-name: io.github.Yigituysgl/sec-financial-analyst-mcp -->
+
 [![PyPI](https://img.shields.io/pypi/v/sec-financial-analyst-mcp)](https://pypi.org/project/sec-financial-analyst-mcp/)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
